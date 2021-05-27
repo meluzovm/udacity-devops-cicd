@@ -24,7 +24,7 @@ commands:
             			"type": "section",
             			"text": {
             				"type": "mrkdwn",
-            				"text": "Build #${CIRCLE_BUILD_NUM} failed on stage ${CIRCLE_STAGE}.\nMore Info: ${CIRCLE_BUILD_URL}. "
+            				"text": "Build #[${CIRCLE_BUILD_NUM}](${CIRCLE_BUILD_URL}) failed on job: ${CIRCLE_STAGE}.\nRepository: ${CIRCLE_REPOSITORY_URL} "
             			},
             			"accessory": {
             				"type": "image",
@@ -54,7 +54,7 @@ commands:
             			"type": "section",
             			"text": {
             				"type": "mrkdwn",
-            				"text": "Build #${CIRCLE_BUILD_NUM} passed stage ${CIRCLE_STAGE}. "
+            				"text": "Build #[${CIRCLE_BUILD_NUM}](${CIRCLE_BUILD_URL}) passed stage ${CIRCLE_STAGE}.\n\n Repository: ${CIRCLE_REPOSITORY_URL}  "
             			},
             			"accessory": {
             				"type": "image",
