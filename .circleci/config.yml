@@ -4,6 +4,67 @@ orbs:
   slack: circleci/slack@4.4.2
 
 commands:
+  send-fail-to-slack:
+    description: Send message to slack about fail
+    steps:
+      - slack/notify:
+          event: fail
+          custom: |
+            {
+            	"blocks": [
+            		{
+            			"type": "header",
+            			"text": {
+            				"type": "plain_text",
+            				"text": "Build failed",
+            				"emoji": true
+            			}
+            		},
+            		{
+            			"type": "section",
+            			"text": {
+            				"type": "mrkdwn",
+            				"text": "Build #${CIRCLE_BUILD_NUM} failed on stage ${CIRCLE_STAGE}.\nMore Info: ${CIRCLE_BUILD_URL}. "
+            			},
+            			"accessory": {
+            				"type": "image",
+            				"image_url": "https://static.onecms.io/wp-content/uploads/sites/20/2018/05/21042210_264995290674140_8840525631411191808_n.jpg",
+            				"alt_text": "sad cat"
+            			}
+            		}
+            	]
+            }
+  send-success-to-slack:
+    description: Send message to slack about success
+    steps:
+      - slack/notify:
+          event: pass
+          custom: |
+            {
+            	"blocks": [
+            		{
+            			"type": "header",
+            			"text": {
+            				"type": "plain_text",
+            				"text": "Build passed",
+            				"emoji": true
+            			}
+            		},
+            		{
+            			"type": "section",
+            			"text": {
+            				"type": "mrkdwn",
+            				"text": "Build #${CIRCLE_BUILD_NUM} passed stage ${CIRCLE_STAGE}. "
+            			},
+            			"accessory": {
+            				"type": "image",
+            				"image_url": "https://static.boredpanda.com/blog/wp-content/uploads/2015/09/Happy-Cats__880.jpg",
+            				"alt_text": "happy cat"
+            			}
+            		}
+            	]
+            } 
+
   destroy-environment:
     description: Destroy back-end and front-end cloudformation stacks given a workflow ID.
  #   parameters:
@@ -52,12 +113,8 @@ jobs:
       - save_cache:
           paths: [backend/node_modules]
           key: backend-build
-      - slack/notify:
-          event: fail
-          template: basic_fail_1
-      - slack/notify:
-          event: pass
-          template: success_tagged_deploy_1
+      - send-fail-to-slack
+      - send-success-to-slack
           
   build-frontend:
     docker:
@@ -75,12 +132,8 @@ jobs:
       - save_cache:
           paths: [frontend/node_modules]
           key: frontend-build
-      - slack/notify:
-          event: fail
-          template: basic_fail_1
-      - slack/notify:
-          event: pass
-          template: success_tagged_deploy_1
+      - send-fail-to-slack
+      - send-success-to-slack
 
   test-frontend:
     docker:
