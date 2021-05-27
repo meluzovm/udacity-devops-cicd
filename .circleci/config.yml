@@ -78,6 +78,7 @@ jobs:
           keys: [frontend-build]
       # Your job code here
       - run:
+          name: Test frontend
           command: |
             cd frontend
             npm i 
@@ -94,6 +95,7 @@ jobs:
           keys: [backend-build]
      # Your job code here
       - run:
+          name: Test backend
           command: |
             cd backend
             npm i 
