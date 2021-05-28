@@ -288,6 +288,7 @@ jobs:
               curl -H "Content-Type: text/plain" -H "token: f107c1d2-c00a-4898-bcb1-e014c2892132" --request PUT --data "1" https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID}
             else
               echo "Migration was not found"
+              exit 0
             fi
      # Here's where you will add some code to rollback on failure      
 
