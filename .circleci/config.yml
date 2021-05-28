@@ -202,7 +202,7 @@ jobs:
             cd backend
             npm audit --audit-level=critical   
         
-  deploy-infrastructure-full:
+  deploy-infrastructure:
     docker:
       - image: amazon/aws-cli 
       # Docker image here that supports AWS CLI
