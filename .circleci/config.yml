@@ -236,9 +236,9 @@ jobs:
             --query 'Reservations[*].Instances[*].PublicIpAddress' \
             --output text >> ansible/inventory.txt
       - persist_to_workspace:
-          root: /tmp/workspace
+          root: ~/
           paths:
-            - project/ansible/inventory.txt
+            - ansible/inventory.txt
       # Here's where you will add some code to rollback on failure      
 
   configure-infrastructure:
@@ -246,9 +246,9 @@ jobs:
       - image: circleci/python        # Docker image here that supports Ansible
     steps:
       - attach_workspace:
-          at: /tmp/workspace
+          at: ~/
       - checkout             # Checkout code from git
-      - run: cat /tmp/workspace/project/ansible/inventory.txt            
+      - run: cat ~/ansible/inventory.txt            
       - run: python -m pip install --user ansible  #install ansible
       - add_ssh_keys:             # Add ssh keys with fingerprint
           fingerprints:
@@ -256,7 +256,7 @@ jobs:
       - run:
           name: Install dependencies & configure server
           command: |
-            ansible-playbook ansible/configure-server.yml -i /tmp/workspace/project/ansible/inventory.txt 
+            ansible-playbook ansible/configure-server.yml -i ~/ansible/inventory.txt 
 
       # Here's where you will add some code to rollback on failure      
 
