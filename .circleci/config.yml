@@ -245,7 +245,7 @@ jobs:
 
   configure-infrastructure:
     docker:
-      - image: circleci/python        # Docker image here that supports Ansible
+      - image: alpine:latest       # Docker image here that supports Ansible
     steps:
       - checkout             # Checkout code from git
       - run: apk add --update ansible
