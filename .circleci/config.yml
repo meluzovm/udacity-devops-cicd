@@ -248,9 +248,10 @@ jobs:
       - image: circleci/python        # Docker image here that supports Ansible
     steps:
       - checkout             # Checkout code from git
+      - run: apk add --update ansible
       - attach_workspace:
           at: .          
-      - run: python -m pip install --user ansible  #install ansible
+    #  - run: python -m pip install --user ansible  #install ansible
       - add_ssh_keys:             # Add ssh keys with fingerprint
           fingerprints:
             - "16:2a:a4:6f:d5:e5:f3:89:0b:90:ba:0f:58:3d:1f:ca"
@@ -270,7 +271,7 @@ jobs:
           name: Run migrations & send result to memstash
           command: |
             cd backend
-            
+            npm i 
             npm run migrations | tee migration.out
             grep "has been executed successfully"  migration.out
             if [ "$?" -eq 1 ]
