@@ -209,7 +209,7 @@ jobs:
     steps:
       - checkout
       # Checkout code from git
-      - run: apk add tar
+      - run: sudo apt-get install tar
       - run:
           name: Ensure back-end infrastructure exists
           command: |
