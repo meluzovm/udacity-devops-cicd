@@ -209,6 +209,7 @@ jobs:
     steps:
       - checkout
       # Checkout code from git
+      - run: apk add tar
       - run:
           name: Ensure back-end infrastructure exists
           command: |
@@ -217,7 +218,8 @@ jobs:
             --tags Project=Udapeople \
             --stack-name udacity-backend-${CIRCLE_SHA1:0:7} \
             --parameter-overrides ID=${CIRCLE_SHA1:0:7} 
-
+#TODO Programmatically save the new back-end url to memory or disk for later use (the front-end needs it). 
+#TODO This could be done with MemStash.io.
       - run:
           name: Ensure front-end infrastructure exist
           command: |
@@ -229,7 +231,7 @@ jobs:
       - run:
           name: Add back-end ip to ansible inventory
           command: |
-            echo "[all]" > ansible/inventory.txt
+            echo "[web]" > ansible/inventory.txt
             aws ec2 describe-instances \
             --filters "Name=tag:Project,Values=Udapeople" \
             --query 'Reservations[*].Instances[*].PublicIpAddress' \
@@ -242,22 +244,22 @@ jobs:
 
   configure-infrastructure:
     docker:
-      - image: circleci/python 
+      - image: ansible/ansible 
       # Docker image here that supports Ansible
     steps:
       # Checkout code from git
+      - checkout 
       # Add ssh keys with fingerprint
-      # attach workspace
+      - add_ssh_keys:
+          fingerprints:
+            - "33:4f:ee:b8:c6:ca:84:5d:db:19:e9:69:27:15:bf:b4:dd:24:ba:26"
+      - attach_workspace:
+        at: /tmp/workspace
       - run:
-          name: Install dependencies
+          name: Install dependencies & configure server
           command: |
-            # Your code here
-            exit 1
-      - run:
-          name: Configure server
-          command: |
-            # Your code here
-            exit 1
+            ansible-playbook ansible/configure-server.yml -i /tmp/workspace/inventory.txt 
+
       # Here's where you will add some code to rollback on failure      
 
   run-migrations:
@@ -393,17 +395,19 @@ workflows:
           requires: [build-frontend]
       - test-backend:
           requires: [build-backend]
-      - scan-backend:
-          requires: [build-backend]
-      - scan-frontend:
-          requires: [build-frontend]
+#      - scan-backend:
+#          requires: [build-backend]
+#      - scan-frontend:
+#          requires: [build-frontend]
       - deploy-infrastructure:
-          requires: [test-frontend, test-backend, scan-frontend, scan-backend]
+#          requires: [test-frontend, test-backend, scan-frontend, scan-backend]
+          requires: [test-frontend, test-backend]
+
 #          filters:
 #            branches:
 #              only: [test-feature-branch]
-#      - configure-infrastructure:
-#          requires: [deploy-infrastructure]
+      - configure-infrastructure:
+          requires: [deploy-infrastructure]
 #      - run-migrations:
 #          requires: [configure-infrastructure]
 #      - deploy-frontend:
