@@ -217,8 +217,15 @@ jobs:
 ##            --tags Project=Udapeople \
 ##            --stack-name udacity-backend-${CIRCLE_SHA1:0:7} \
 ##            --parameter-overrides ID=${CIRCLE_SHA1:0:7} 
-###TODO Programmatically save the new back-end url to memory or disk for later use (the front-end needs it). 
-###TODO This could be done with MemStash.io.
+##      - run:
+##          name: Save backend URL to memstash
+##          command: |
+##            BACKEND_IP=$(aws cloudformation describe-stacks \
+##            --stack-name udacity-backend-${CIRCLE_SHA1:0:7} \
+##            --query "Stacks[0].Outputs[0].OutputValue" 
+##            --output=text)
+##            curl -H "Content-Type: text/plain" -H "token: ${MEMSTASH_TOKEN}" --request PUT --data "${BACKEND_IP}" https://api.memstash.io/values/backend_${CIRCLE_WORKFLOW_ID}
+##
 ##      - run:
 ##          name: Ensure front-end infrastructure exist
 ##          command: |
@@ -273,61 +280,61 @@ jobs:
             cd backend
             npm i 
             npm run migrations | tee migration.out
-      - run:
-          name: Send migrations result to memstash
-          command: |
-            migrationresult=$(grep "has been executed successfully"  ./backend/migration.out | wc -l)
-            echo $migrationresult
-            if [ "$migrationresult" -eq 0 ]   # 0 = nothing found
-            then
-              echo "Not found any new migration"
-            else
-              echo "A new migration was applied, sending info to memstash"
-              curl -H "Content-Type: text/plain" -H "token: ${MEMSTASH_TOKEN}" --request PUT --data "1" https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID}
-            fi
-            echo "finish"
-      - run: echo "job finished"
+#TODO: fix sending to MEMSTASH
+#      - run:
+#          name: Send migrations result to memstash
+#          command: |
+#            migrationresult=$(grep "has been executed successfully"  ./backend/migration.out | wc -l)
+#            echo $migrationresult
+#            if [ "$migrationresult" -eq 0 ]   # 0 = nothing found
+#            then
+#              echo "Not found any new migration"
+#            else
+#              echo "A new migration was applied, sending info to memstash"
+#              curl -H "Content-Type: text/plain" -H "token: ${MEMSTASH_TOKEN}" --request PUT --data "1" https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID}
+#            fi
+#
      # Here's where you will add some code to rollback on failure      
 
   deploy-frontend:
     docker:
-      - image: amazon/aws-cli 
-      # Docker image here that supports AWS CLI
+      - image: amazon/aws-cli             # Docker image here that supports AWS CLI
     steps:
       - checkout 
-      # Checkout code from git
-      - run:
-          name: Install dependencies
-          command: |
-            # your code here
       - run:
           name: Get backend url
           command: |
-            # your code here
+            #BACKEND_IP=$(curl -H "token: ${MEMSTASH_TOKEN}" --request GET https://api.memstash.io/values/backend_${CIRCLE_WORKFLOW_ID})
+            BACKEND_IP=3.67.185.38
             export API_URL="http://${BACKEND_IP}:3030"
             echo "${API_URL}"
       - run:
-          name: Deploy frontend objects
+          name: Install dependencies & deploy frontend objects
           command: |
-            # your code here
+            cd frontend
+            npm i 
+            npm run build
       # Here's where you will add some code to rollback on failure      
                     
   deploy-backend:
     docker:
-      - image: circleci/python 
-      # Docker image here that supports Ansible
+      - image: alpine:latest       # Docker image here that supports Ansible
     steps:
-      # Checkout code from git
-      # Add ssh keys with fingerprint
-      # attach workspace
+      - checkout          # Checkout code from git
+      - add_ssh_keys:             # Add ssh keys with fingerprint
+          fingerprints:
+            - "16:2a:a4:6f:d5:e5:f3:89:0b:90:ba:0f:58:3d:1f:ca"
+      - attach_workspace:
+          at: . 
       - run:
           name: Install dependencies
           command: |
-            # your code here
+            apk add --update ansible 
       - run:
           name: Deploy backend
+            #Use Ansible to copy the files (compiled back-end files can be found in a folder called ./dist).
           command: |
-            # your code here
+            ansible-playbook ./ansible/deploy-backend.yml -i ./ansible/inventory.txt 
       # Here's where you will add some code to rollback on failure  
 
   smoke-test:
@@ -398,6 +405,10 @@ workflows:
           requires: [deploy-infrastructure]     
       - run-migrations:
           requires: [configure-infrastructure]
+      - deploy-frontend:
+          requires: [run-migrations]
+      - deploy-backend:
+          requires: [run-migrations]
 #MM   default:
 #MM     jobs:
 #MM       - build-frontend:
