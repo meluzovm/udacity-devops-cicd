@@ -213,29 +213,31 @@ jobs:
           name: Ensure back-end infrastructure exists
           command: |
             aws cloudformation deploy \
-              --template-file .circleci/files/backend.yml \
-              #--tags project=your-tag \
-              # --stack-name "your back-end stack name with workflow id" \
-              # --parameter-overrides ID="your workflow id"  
-              exit 1
+            --template-file infra/backend.yml \
+            --tags Project=Udapeople \
+            --stack-name udacity-backend-${CIRCLE_SHA1:0:7} \
+            --parameter-overrides ID=${CIRCLE_SHA1:0:7} 
+
       - run:
           name: Ensure front-end infrastructure exist
           command: |
             aws cloudformation deploy \
-              --template-file .circleci/files/frontend.yml \
-              #--tags project=your-tag \
-              # --stack-name "your front-end stack name with workflow id" \
-              # --parameter-overrides ID="your workflow id"  
-              exit 1
+            --template-file infra/frontend.yml \
+            --tags Project=Udapeople \
+            --stack-name udacity-frontend-${CIRCLE_SHA1:0:7}  \
+            --parameter-overrides ID=${CIRCLE_SHA1:0:7}  
       - run:
           name: Add back-end ip to ansible inventory
           command: |
-            # Your code here
-            exit 1
+            echo "[all]" > ansible/inventory.txt
+            aws ec2 describe-instances \
+            --filters "Name=tag:Project,Values=Udapeople" \
+            --query 'Reservations[*].Instances[*].PublicIpAddress' \
+            --output text >> ansible/inventory.txt
       - persist_to_workspace:
           root: ~/
           paths:
-            - project/.circleci/ansible/inventory.txt
+            - project/ansible/inventory.txt
       # Here's where you will add some code to rollback on failure      
 
   configure-infrastructure:
@@ -395,8 +397,8 @@ workflows:
           requires: [build-backend]
       - scan-frontend:
           requires: [build-frontend]
-#      - deploy-infrastructure:
-#          requires: [test-frontend, test-backend, scan-frontend, scan-backend]
+      - deploy-infrastructure:
+          requires: [test-frontend, test-backend, scan-frontend, scan-backend]
 #          filters:
 #            branches:
 #              only: [test-feature-branch]
