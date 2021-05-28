@@ -270,7 +270,7 @@ jobs:
           name: Run migrations & send result to memstash
           command: |
             cd backend
- #           npm install -g typescript 
+            
             npm run migrations | tee migration.out
             grep "has been executed successfully"  migration.out
             if [ "$?" -eq 1 ]
