@@ -247,9 +247,14 @@ jobs:
     docker:
       - image: circleci/python        # Docker image here that supports Ansible
     steps:
+      - checkout             # Checkout code from git
+      - run: pwd
+      - run: ls -la
+      - run: ls -la * 
       - attach_workspace:
           at: . 
-      - checkout             # Checkout code from git
+      - run: ls -la
+      - run: ls -la * 
       - run: cat ./ansible/inventory.txt            
       - run: python -m pip install --user ansible  #install ansible
       - add_ssh_keys:             # Add ssh keys with fingerprint
@@ -262,7 +267,7 @@ jobs:
 
       # Here's where you will add some code to rollback on failure      
 
-  run-migrations:
+  runrun-migrations:
     docker:
       - image: circleci/node 
       # Docker image here that supports NodeJS
