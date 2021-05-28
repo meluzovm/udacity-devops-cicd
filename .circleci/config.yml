@@ -273,22 +273,16 @@ jobs:
             cd backend
             npm i 
             npm run migrations | tee migration.out
-            cat migration.out
-            ls -la 
       - run:
           name: Send migrations result to memstash
           command: |
-            ls -la 
-            cd backend
-            ls -la 
-            grep "has been executed successfully"  migration.out
-            if [ "$?" -eq 0 ]   ## 0 = string was found
+            migrationresult=$(grep "has been executed successfully"  ./backend/migration.out | wc -l)
+            if [ "$migrationresult" -eq 0 ]   # 0 = nothing found
             then
-              echo "Migration found"
-              curl -H "Content-Type: text/plain" -H "token: f107c1d2-c00a-4898-bcb1-e014c2892132" --request PUT --data "1" https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID}
+              echo "Not found any new migration"
             else
-              echo "Migration was not found"
-              exit 0
+              echo "A new migration was applied, sending info to memstash"
+              curl -H "Content-Type: text/plain" -H "token: ${MEMSTASH_TOKEN}" --request PUT --data "1" https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID}
             fi
      # Here's where you will add some code to rollback on failure      
 
