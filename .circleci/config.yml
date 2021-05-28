@@ -236,7 +236,7 @@ jobs:
             --query 'Reservations[*].Instances[*].PublicIpAddress' \
             --output text >> ansible/inventory.txt
       - persist_to_workspace:
-          root: ~/
+          root: /tmp/workspace
           paths:
             - project/ansible/inventory.txt
       # Here's where you will add some code to rollback on failure      
@@ -245,17 +245,18 @@ jobs:
     docker:
       - image: circleci/python        # Docker image here that supports Ansible
     steps:
+      - attach_workspace:
+          at: /tmp/workspace
+      - checkout             # Checkout code from git
+      - run: cat /tmp/workspace/project/ansible/inventory.txt            
       - run: python -m pip install --user ansible  #install ansible
-      - checkout            # Checkout code from git
       - add_ssh_keys:             # Add ssh keys with fingerprint
           fingerprints:
             - "16:2a:a4:6f:d5:e5:f3:89:0b:90:ba:0f:58:3d:1f:ca"
-      - attach_workspace:
-          at: ~/
       - run:
           name: Install dependencies & configure server
           command: |
-            ansible-playbook ansible/configure-server.yml -i project/ansible/inventory.txt
+            ansible-playbook ansible/configure-server.yml -i /tmp/workspace/project/ansible/inventory.txt 
 
       # Here's where you will add some code to rollback on failure      
 
@@ -379,39 +380,45 @@ cleanup:
             fi
             
 workflows:
-  default:
+  ansible:
     jobs:
-      - build-frontend:
-          context:
-            - SLACK
-      - build-backend:
-          context:
-            - SLACK
-#      - test-frontend:
-#          requires: [build-frontend]
-#      - test-backend:
-#          requires: [build-backend]
-      - scan-backend:
-          requires: [build-backend]
-      - scan-frontend:
-          requires: [build-frontend]
       - deploy-infrastructure:
-#          requires: [test-frontend, test-backend, scan-frontend, scan-backend]
           requires: [scan-frontend, scan-backend]
-#          filters:
-#            branches:
-#              only: [test-feature-branch]
       - configure-infrastructure:
-          requires: [deploy-infrastructure]
-#      - run-migrations:
-#          requires: [configure-infrastructure]
-#      - deploy-frontend:
-#          requires: [run-migrations]
-#      - deploy-backend:
-#          requires: [run-migrations]
-#      - smoke-test:
-#          requires: [deploy-backend, deploy-frontend]
-#      - cloudfront-update:
-#          requires: [smoke-test]
-#      - cleanup:
-#          requires: [cloudfront-update]
+          requires: [deploy-infrastructure]     
+#MM   default:
+#MM     jobs:
+#MM       - build-frontend:
+#MM           context:
+#MM             - SLACK
+#MM       - build-backend:
+#MM           context:
+#MM             - SLACK
+#MM #      - test-frontend:
+#MM #          requires: [build-frontend]
+#MM #      - test-backend:
+#MM #          requires: [build-backend]
+#MM       - scan-backend:
+#MM           requires: [build-backend]
+#MM       - scan-frontend:
+#MM           requires: [build-frontend]
+#MM       - deploy-infrastructure:
+#MM #          requires: [test-frontend, test-backend, scan-frontend, scan-backend]
+#MM           requires: [scan-frontend, scan-backend]
+#MM #          filters:
+#MM #            branches:
+#MM #              only: [test-feature-branch]
+#MM       - configure-infrastructure:
+#MM           requires: [deploy-infrastructure]
+#MM #      - run-migrations:
+#MM #          requires: [configure-infrastructure]
+#MM #      - deploy-frontend:
+#MM #          requires: [run-migrations]
+#MM #      - deploy-backend:
+#MM #          requires: [run-migrations]
+#MM #      - smoke-test:
+#MM #          requires: [deploy-backend, deploy-frontend]
+#MM #      - cloudfront-update:
+#MM #          requires: [smoke-test]
+#MM #      - cleanup:
+#MM #          requires: [cloudfront-update]
