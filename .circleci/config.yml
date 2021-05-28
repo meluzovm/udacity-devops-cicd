@@ -391,18 +391,17 @@ workflows:
       - build-backend:
           context:
             - SLACK
-      - test-frontend:
-          requires: [build-frontend]
-      - test-backend:
-          requires: [build-backend]
-#      - scan-backend:
-#          requires: [build-backend]
-#      - scan-frontend:
+#      - test-frontend:
 #          requires: [build-frontend]
+#      - test-backend:
+#          requires: [build-backend]
+      - scan-backend:
+          requires: [build-backend]
+      - scan-frontend:
+          requires: [build-frontend]
       - deploy-infrastructure:
 #          requires: [test-frontend, test-backend, scan-frontend, scan-backend]
-          requires: [test-frontend, test-backend]
-
+          requires: [scan-frontend, scan-backend]
 #          filters:
 #            branches:
 #              only: [test-feature-branch]
