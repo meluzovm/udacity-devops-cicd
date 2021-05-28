@@ -248,14 +248,8 @@ jobs:
       - image: circleci/python        # Docker image here that supports Ansible
     steps:
       - checkout             # Checkout code from git
-      - run: pwd
-      - run: ls -la
-      - run: ls -la * 
       - attach_workspace:
-          at: . 
-      - run: ls -la
-      - run: ls -la * 
-      - run: cat ./ansible/inventory.txt            
+          at: .          
       - run: python -m pip install --user ansible  #install ansible
       - add_ssh_keys:             # Add ssh keys with fingerprint
           fingerprints:
@@ -263,26 +257,28 @@ jobs:
       - run:
           name: Install dependencies & configure server
           command: |
-            ansible-playbook ansible/configure-server.yml -i ./ansible/inventory.txt 
+            ansible-playbook ./ansible/configure-server.yml -i ./ansible/inventory.txt 
 
       # Here's where you will add some code to rollback on failure      
 
-  runrun-migrations:
+  run-migrations:
     docker:
-      - image: circleci/node 
-      # Docker image here that supports NodeJS
+      - image: circleci/node              # Docker image here that supports NodeJS
     steps:
-      # Checkout code from git
+      - checkout          # Checkout code from git
       - run:
-          name: Run migrations
+          name: Run migrations & send result to memstash
           command: |
-            # Your code here
-            exit 1
-      - run:
-          name: Send migration results to memstash
-          command: |
-            # Your code here
-            exit 1
+            cd backend
+            npm run migrations | tee migration.out
+            grep "has been executed successfully"  migration.out
+            if [ "$?" -eq 1 ]
+            then
+              echo "Migration found"
+              curl -H "Content-Type: text/plain" -H "token: f107c1d2-c00a-4898-bcb1-e014c2892132" --request PUT --data "1" https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID}
+            else
+              echo "Migration was not found"
+            fi
      # Here's where you will add some code to rollback on failure      
 
   deploy-frontend:
@@ -392,6 +388,8 @@ workflows:
       - deploy-infrastructure
       - configure-infrastructure:
           requires: [deploy-infrastructure]     
+      - run-migrations:
+          requires: [configure-infrastructure]
 #MM   default:
 #MM     jobs:
 #MM       - build-frontend:
