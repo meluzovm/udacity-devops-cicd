@@ -43,3 +43,7 @@ Resources:
       UserData: !Base64 |
         #!/bin/bash -ex
         # put your script here
+Outputs:
+  EC2InstanceIP:
+    Description: Public IP of EC2 instance
+    Value: !GetAtt EC2Instance.PublicIp
