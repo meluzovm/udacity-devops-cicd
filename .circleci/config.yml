@@ -280,6 +280,7 @@ jobs:
           command: |
             ls -la 
             cd backend
+            ls -la 
             grep "has been executed successfully"  migration.out
             if [ "$?" -eq 0 ]   ## 0 = string was found
             then
