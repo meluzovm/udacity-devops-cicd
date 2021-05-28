@@ -243,13 +243,11 @@ jobs:
 
   configure-infrastructure:
     docker:
-      - image: ansible/ansible 
-      # Docker image here that supports Ansible
+      - image: circleci/python        # Docker image here that supports Ansible
     steps:
-      # Checkout code from git
-      - checkout 
-      # Add ssh keys with fingerprint
-      - add_ssh_keys:
+      - run: python -m pip install --user ansible  #install ansible
+      - checkout            # Checkout code from git
+      - add_ssh_keys:             # Add ssh keys with fingerprint
           fingerprints:
             - "33:4f:ee:b8:c6:ca:84:5d:db:19:e9:69:27:15:bf:b4:dd:24:ba:26"
       - attach_workspace:
