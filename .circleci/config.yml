@@ -202,31 +202,31 @@ jobs:
             cd backend
             npm audit --audit-level=critical   
         
-  deploy-infrastructure:
+  deploy-infrastructure-full:
     docker:
       - image: amazon/aws-cli 
       # Docker image here that supports AWS CLI
     steps:
       - checkout        # Checkout code from git
       - run: yum install -y tar gzip   #Install tar and gzip to use workspaces
-      - run:
-          name: Ensure back-end infrastructure exists
-          command: |
-            aws cloudformation deploy \
-            --template-file infra/backend.yml \
-            --tags Project=Udapeople \
-            --stack-name udacity-backend-${CIRCLE_SHA1:0:7} \
-            --parameter-overrides ID=${CIRCLE_SHA1:0:7} 
-#TODO Programmatically save the new back-end url to memory or disk for later use (the front-end needs it). 
-#TODO This could be done with MemStash.io.
-      - run:
-          name: Ensure front-end infrastructure exist
-          command: |
-            aws cloudformation deploy \
-            --template-file infra/frontend.yml \
-            --tags Project=Udapeople \
-            --stack-name udacity-frontend-${CIRCLE_SHA1:0:7}  \
-            --parameter-overrides ID=${CIRCLE_SHA1:0:7}  
+##      - run:
+##          name: Ensure back-end infrastructure exists
+##          command: |
+##            aws cloudformation deploy \
+##            --template-file infra/backend.yml \
+##            --tags Project=Udapeople \
+##            --stack-name udacity-backend-${CIRCLE_SHA1:0:7} \
+##            --parameter-overrides ID=${CIRCLE_SHA1:0:7} 
+###TODO Programmatically save the new back-end url to memory or disk for later use (the front-end needs it). 
+###TODO This could be done with MemStash.io.
+##      - run:
+##          name: Ensure front-end infrastructure exist
+##          command: |
+##            aws cloudformation deploy \
+##            --template-file infra/frontend.yml \
+##            --tags Project=Udapeople \
+##            --stack-name udacity-frontend-${CIRCLE_SHA1:0:7}  \
+##            --parameter-overrides ID=${CIRCLE_SHA1:0:7}  
       - run:
           name: Add back-end ip to ansible inventory
           command: |
@@ -249,13 +249,13 @@ jobs:
       - checkout            # Checkout code from git
       - add_ssh_keys:             # Add ssh keys with fingerprint
           fingerprints:
-            - "33:4f:ee:b8:c6:ca:84:5d:db:19:e9:69:27:15:bf:b4:dd:24:ba:26"
+            - "16:2a:a4:6f:d5:e5:f3:89:0b:90:ba:0f:58:3d:1f:ca"
       - attach_workspace:
-          at: /tmp/workspace
+          at: ~/
       - run:
           name: Install dependencies & configure server
           command: |
-            ansible-playbook ansible/configure-server.yml -i /tmp/workspace/inventory.txt 
+            ansible-playbook ansible/configure-server.yml -i project/ansible/inventory.txt
 
       # Here's where you will add some code to rollback on failure      
 
