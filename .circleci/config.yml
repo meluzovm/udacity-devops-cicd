@@ -268,13 +268,17 @@ jobs:
     steps:
       - checkout          # Checkout code from git
       - run:
-          name: Run migrations & send result to memstash
+          name: Run migrations 
           command: |
             cd backend
             npm i 
             npm run migrations | tee migration.out
+            cat migration.out
+      - run:
+          name: Send migrations result to memstash
+          command: |
             grep "has been executed successfully"  migration.out
-            if [ "$?" -eq 1 ]
+            if [ "$?" -eq 0 ]   ## 0 = string was found
             then
               echo "Migration found"
               curl -H "Content-Type: text/plain" -H "token: f107c1d2-c00a-4898-bcb1-e014c2892132" --request PUT --data "1" https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID}
