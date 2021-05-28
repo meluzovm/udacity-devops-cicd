@@ -254,7 +254,7 @@ jobs:
           fingerprints:
             - "33:4f:ee:b8:c6:ca:84:5d:db:19:e9:69:27:15:bf:b4:dd:24:ba:26"
       - attach_workspace:
-        at: /tmp/workspace
+          at: /tmp/workspace
       - run:
           name: Install dependencies & configure server
           command: |
