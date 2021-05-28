@@ -33,6 +33,7 @@ Resources:
       EngineVersion: 9.6.5
       MasterUsername: postgres
       MasterUserPassword: !Ref RDSPassword
+      PubliclyAccessible: true
       VPCSecurityGroups: 
         - !ImportValue rdsPostgresSecurityGroup
     DeletionPolicy: "Retain"
