@@ -277,6 +277,7 @@ jobs:
           name: Send migrations result to memstash
           command: |
             migrationresult=$(grep "has been executed successfully"  ./backend/migration.out | wc -l)
+            echo $migrationresult
             if [ "$migrationresult" -eq 0 ]   # 0 = nothing found
             then
               echo "Not found any new migration"
@@ -284,6 +285,8 @@ jobs:
               echo "A new migration was applied, sending info to memstash"
               curl -H "Content-Type: text/plain" -H "token: ${MEMSTASH_TOKEN}" --request PUT --data "1" https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID}
             fi
+            echo "finish"
+      - run: echo "job finished"
      # Here's where you will add some code to rollback on failure      
 
   deploy-frontend:
