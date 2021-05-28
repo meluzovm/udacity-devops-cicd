@@ -235,8 +235,10 @@ jobs:
             --filters "Name=tag:Project,Values=Udapeople" \
             --query 'Reservations[*].Instances[*].PublicIpAddress' \
             --output text >> ansible/inventory.txt
+      - run: ls -la
+      - run: ls -la *
       - persist_to_workspace:
-          root: ~/
+          root: .
           paths:
             - ansible/inventory.txt
       # Here's where you will add some code to rollback on failure      
@@ -246,9 +248,9 @@ jobs:
       - image: circleci/python        # Docker image here that supports Ansible
     steps:
       - attach_workspace:
-          at: ~/
+          at: . 
       - checkout             # Checkout code from git
-      - run: cat ~/ansible/inventory.txt            
+      - run: cat ./ansible/inventory.txt            
       - run: python -m pip install --user ansible  #install ansible
       - add_ssh_keys:             # Add ssh keys with fingerprint
           fingerprints:
@@ -256,7 +258,7 @@ jobs:
       - run:
           name: Install dependencies & configure server
           command: |
-            ansible-playbook ansible/configure-server.yml -i ~/ansible/inventory.txt 
+            ansible-playbook ansible/configure-server.yml -i ./ansible/inventory.txt 
 
       # Here's where you will add some code to rollback on failure      
 
