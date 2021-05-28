@@ -38,6 +38,8 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub backend-${ID}
+        - Key: Project
+          Value: Udacity
       UserData: !Base64 |
         #!/bin/bash -ex
         # put your script here
