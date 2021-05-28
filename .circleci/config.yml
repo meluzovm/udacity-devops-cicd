@@ -274,9 +274,12 @@ jobs:
             npm i 
             npm run migrations | tee migration.out
             cat migration.out
+            ls -la 
       - run:
           name: Send migrations result to memstash
           command: |
+            ls -la 
+            cd backend
             grep "has been executed successfully"  migration.out
             if [ "$?" -eq 0 ]   ## 0 = string was found
             then
