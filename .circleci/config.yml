@@ -309,8 +309,8 @@ jobs:
           name: Send migrations result to memstash
           command: |
             cat ./backend/migration.out
-#            migrationresult=$(grep "has been executed successfully"  ./backend/migration.out | wc -l)
-#            if [ "$migrationresult" -eq 0 ]  
+            #            migrationresult=$(grep "has been executed successfully"  ./backend/migration.out | wc -l)
+            #            if [ "$migrationresult" -eq 0 ]  
             if grep "has been executed successfully" ./backend/migration.out 
             then
               echo "A new migration was applied"
