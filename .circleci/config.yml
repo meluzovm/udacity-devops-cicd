@@ -71,10 +71,13 @@ commands:
     parameters:
       workflowID:
         type: string
+      when_to_run:
+        type: string
+        default: "on_fail"
     steps:
       - run:
           name: Destroy environments
-          when: on_fail
+          when: << parameters.when_to_run >>
           command: |
             echo "!!Deleting frontend and backend with workflow id: << parameters.workflowID >>"
             aws cloudformation delete-stack --stack-name udacity-backend-<< parameters.workflowID >> 
@@ -82,12 +85,15 @@ commands:
 
   revert-migrations:
     description: Revert the last migration if successfully run in the current workflow.
-#    parameters:
-#      # Add parameter here     
+    parameters:
+      workflowID:
+        type: string
+      when_to_run:
+        type: string
+        default: "on_fail"   
     steps:
       - run:
           name: Revert migrations
-          # Add when this will run
           command: |
             # Curl command here to see if there was a successful migration associated with the workflow id, store result in SUCCESS variable
             SUCCESS = 1
@@ -98,7 +104,9 @@ commands:
             #  Add revert code here. You can find this in the Getting Started section.
               exit 1
             fi
-           
+
+##############################################################################################################################        
+
 jobs:
   build-backend:
     docker:
@@ -211,31 +219,22 @@ jobs:
     steps:
       - checkout        # Checkout code from git
       - run: yum install -y tar gzip   #Install tar and gzip to use workspaces
-##      - run:
-##          name: Ensure back-end infrastructure exists
-##          command: |
-##            aws cloudformation deploy \
-##            --template-file infra/backend.yml \
-##            --tags Project=Udapeople \
-##            --stack-name udacity-backend-${CIRCLE_SHA1:0:7} \
-##            --parameter-overrides ID=${CIRCLE_SHA1:0:7} 
-##      - run:
-##          name: Save backend URL to memstash
-##          command: |
-##            BACKEND_IP=$(aws cloudformation describe-stacks \
-##            --stack-name udacity-backend-${CIRCLE_SHA1:0:7} \
-##            --query "Stacks[0].Outputs[0].OutputValue" 
-##            --output=text)
-##            curl -H "Content-Type: text/plain" -H "token: ${MEMSTASH_TOKEN}" --request PUT --data "${BACKEND_IP}" https://api.memstash.io/values/backend_${CIRCLE_WORKFLOW_ID}
-##
-##      - run:
-##          name: Ensure front-end infrastructure exist
-##          command: |
-##            aws cloudformation deploy \
-##            --template-file infra/frontend.yml \
-##            --tags Project=Udapeople \
-##            --stack-name udacity-frontend-${CIRCLE_SHA1:0:7}  \
-##            --parameter-overrides ID=${CIRCLE_SHA1:0:7}  
+      - run:
+          name: Ensure back-end infrastructure exists
+          command: |
+            aws cloudformation deploy \
+            --template-file infra/backend.yml \
+            --tags Project=Udapeople \
+            --stack-name udacity-backend-${CIRCLE_SHA1:0:7} \
+            --parameter-overrides ID=${CIRCLE_SHA1:0:7} 
+      - run:
+          name: Save backend URL to memstash
+          command: |
+            BACKEND_IP=$(aws cloudformation describe-stacks \
+            --stack-name udacity-backend-${CIRCLE_SHA1:0:7} \
+            --query "Stacks[0].Outputs[0].OutputValue" 
+            --output=text)
+            curl -H "Content-Type: text/plain" -H "token: ${MEMSTASH_TOKEN}" --request PUT --data "${BACKEND_IP}" https://api.memstash.io/values/backend_${CIRCLE_WORKFLOW_ID}
       - run:
           name: Add back-end ip to ansible inventory
           command: |
@@ -243,14 +242,22 @@ jobs:
             aws ec2 describe-instances \
             --filters "Name=tag:Project,Values=Udapeople" \
             --query 'Reservations[*].Instances[*].PublicIpAddress' \
-            --output text >> ansible/inventory.txt
-      - run: ls -la
-      - run: ls -la *
+            --output text >> ansible/inventory.txt      
+      - run:
+          name: Ensure front-end infrastructure exist
+          command: |
+            aws cloudformation deploy \
+            --template-file infra/frontend.yml \
+            --tags Project=Udapeople \
+            --stack-name udacity-frontend-${CIRCLE_SHA1:0:7}  \
+            --parameter-overrides ID=${CIRCLE_SHA1:0:7}  
       - persist_to_workspace:
           root: .
           paths:
             - ansible/inventory.txt
-      # Here's where you will add some code to rollback on failure      
+      - destroy-environment:
+          workflowID: ${CIRCLE_WORKFLOW_ID:0:7}
+          when_to_run: on_fail   
 
   configure-infrastructure:
     docker:
@@ -260,7 +267,6 @@ jobs:
       - run: apk add --update ansible
       - attach_workspace:
           at: .          
-    #  - run: python -m pip install --user ansible  #install ansible
       - add_ssh_keys:             # Add ssh keys with fingerprint
           fingerprints:
             - "16:2a:a4:6f:d5:e5:f3:89:0b:90:ba:0f:58:3d:1f:ca"
@@ -268,7 +274,9 @@ jobs:
           name: Install dependencies & configure server
           command: |
             ansible-playbook ./ansible/configure-server.yml -i ./ansible/inventory.txt 
-
+      - destroy-environment:
+          workflowID: ${CIRCLE_WORKFLOW_ID:0:7}
+          when_to_run: on_fail   
       # Here's where you will add some code to rollback on failure      
 
   run-migrations:
@@ -277,26 +285,42 @@ jobs:
     steps:
       - checkout          # Checkout code from git
       - run:
+          name: Prepare environment
+          command: |
+            echo TYPEORM_CONNECTION=postgres >> "backend/.env"
+            echo TYPEORM_MIGRATIONS_DIR=./src/migrations >> "backend/.env"
+            echo TYPEORM_ENTITIES=./src/modules/domain/**/*.entity.ts >> "backend/.env"
+            echo TYPEORM_MIGRATIONS=./src/migrations/*.ts >> "backend/.env"
+            echo TYPEORM_HOST=$TYPEORM_HOST >> "backend/.env"
+            echo TYPEORM_PORT=$TYPEORM_PORT >> "backend/.env"
+            echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> "backend/.env"
+            echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> "backend/.env"
+            echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> "backend/.env"
+            cat backend/.env
+      - run:
           name: Run migrations 
           command: |
             cd backend
             npm i 
-            npm run migrations | tee migration.out
-#TODO: fix sending to MEMSTASH
-#      - run:
-#          name: Send migrations result to memstash
-#          command: |
-#            migrationresult=$(grep "has been executed successfully"  ./backend/migration.out | wc -l)
-#            echo $migrationresult
-#            if [ "$migrationresult" -eq 0 ]   # 0 = nothing found
-#            then
-#              echo "Not found any new migration"
-#            else
-#              echo "A new migration was applied, sending info to memstash"
-#              curl -H "Content-Type: text/plain" -H "token: ${MEMSTASH_TOKEN}" --request PUT --data "1" https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID}
-#            fi
-#
-     # Here's where you will add some code to rollback on failure      
+            npm run migrations > migration.out
+      - run:
+          name: Send migrations result to memstash
+          command: |
+            migrationresult=$(grep "has been executed successfully"  ./backend/migration.out | wc -l)
+            echo $migrationresult
+            if [ "$migrationresult" -eq 0 ]   
+            then
+              echo "Not found any new migration"
+            else
+              echo "A new migration was applied, sending info to memstash"
+             # curl -H "Content-Type: text/plain" -H "token: ${MEMSTASH_TOKEN}" --request PUT --data "1" https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID}
+            fi
+      - destroy-environment:
+          workflowID: ${CIRCLE_WORKFLOW_ID:0:7}
+          when_to_run: on_fail    
+      - revert-migrations:
+          workflowID: ${CIRCLE_WORKFLOW_ID:0:7}
+          when_to_run: on_fail  
 
   deploy-frontend:
     docker:
@@ -310,8 +334,8 @@ jobs:
       - run:
           name: Get backend url
           command: |
-            #BACKEND_IP=$(curl -H "token: ${MEMSTASH_TOKEN}" --request GET https://api.memstash.io/values/backend_${CIRCLE_WORKFLOW_ID})
-            BACKEND_IP=3.67.185.38
+            BACKEND_IP=$(curl -H "token: ${MEMSTASH_TOKEN}" --request GET https://api.memstash.io/values/backend_${CIRCLE_WORKFLOW_ID})
+            #BACKEND_IP=3.67.185.38
             export API_URL="http://${BACKEND_IP}:3030"
             echo "${API_URL}"
             echo "${API_URL}" >> "frontend/.env"
@@ -322,6 +346,7 @@ jobs:
             npm i 
             npm run build
             aws s3 sync dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7}
+
       # Here's where you will add some code to rollback on failure      
                     
   deploy-backend:
@@ -419,7 +444,7 @@ cleanup:
             fi
             
 workflows:
-  ansible:
+  short:
     jobs:
       - deploy-infrastructure
       - configure-infrastructure:
