@@ -225,14 +225,14 @@ jobs:
             aws cloudformation deploy \
             --template-file infra/backend.yml \
             --tags Project=Udapeople \
-            --stack-name udacity-backend-${CIRCLE_SHA1:0:7} \
-            --parameter-overrides ID=${CIRCLE_SHA1:0:7} 
+            --stack-name udacity-backend-${CIRCLE_WORKFLOW_ID:0:7} \
+            --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:7} 
       - run:
           name: Save backend URL to memstash
           command: |
             BACKEND_IP=$(aws cloudformation describe-stacks \
-            --stack-name udacity-backend-${CIRCLE_SHA1:0:7} \
-            --query "Stacks[0].Outputs[0].OutputValue" 
+            --stack-name udacity-backend-${CIRCLE_WORKFLOW_ID:0:7} \
+            --query "Stacks[0].Outputs[0].OutputValue" \
             --output=text)
             curl -H "Content-Type: text/plain" -H "token: ${MEMSTASH_TOKEN}" --request PUT --data "${BACKEND_IP}" https://api.memstash.io/values/backend_${CIRCLE_WORKFLOW_ID}
       - run:
@@ -249,8 +249,8 @@ jobs:
             aws cloudformation deploy \
             --template-file infra/frontend.yml \
             --tags Project=Udapeople \
-            --stack-name udacity-frontend-${CIRCLE_SHA1:0:7}  \
-            --parameter-overrides ID=${CIRCLE_SHA1:0:7}  
+            --stack-name udacity-frontend-${CIRCLE_WORKFLOW_ID:0:7}  \
+            --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:7}  
       - persist_to_workspace:
           root: .
           paths:
