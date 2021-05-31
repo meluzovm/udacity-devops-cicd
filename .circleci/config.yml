@@ -96,14 +96,15 @@ commands:
           name: Revert migrations
           when: << parameters.when_to_run >>
           command: |
+            SUCCESS=$(curl -H "token: ${MEMSTASH_TOKEN}" --request GET https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID})
             # Curl command here to see if there was a successful migration associated with the workflow id, store result in SUCCESS variable
             SUCCESS = 1
             if(( $SUCCESS==1 )); 
             then
-            #  cd ~/project/backend
-            #  npm install
-            #  Add revert code here. You can find this in the Getting Started section.
-              exit 1
+              cd ~/project/backend
+              npm install
+              npm run migrations:revert
+              #Add revert code here. You can find this in the Getting Started section.
             fi
 
 ##############################################################################################################################        
@@ -127,7 +128,7 @@ jobs:
           key: backend-build
       - send-fail-to-slack
       - send-success-to-slack
-          
+  
   build-frontend:
     docker:
       - image: circleci/node:13.8.0
@@ -216,28 +217,26 @@ jobs:
   deploy-infrastructure:
     docker:
       - image: amazon/aws-cli 
-      # Docker image here that supports AWS CLI
     steps:
       - checkout        # Checkout code from git
       - run: yum install -y tar gzip   #Install tar and gzip to use workspaces
-#      - run:
-#          name: Ensure back-end infrastructure exists
-#          command: |
-#            aws cloudformation deploy \
-#            --template-file infra/backend.yml \
-#            --tags Project=Udapeople \
-#            --stack-name udacity-backend-${CIRCLE_WORKFLOW_ID:0:7} \
-#            --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:7} 
+      - run:
+          name: Ensure back-end infrastructure exists
+          command: |
+            aws cloudformation deploy \
+            --template-file infra/backend.yml \
+            --tags Project=Udapeople \
+            --stack-name udacity-backend-${CIRCLE_WORKFLOW_ID:0:7} \
+            --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:7} 
       - run:
           name: Save backend URL to memstash
           command: |
             BACKEND_IP=$(aws cloudformation describe-stacks \
-            --stack-name udacity-backend-${TMP_WORKFLOW_ID:0:7} \
+            --stack-name udacity-backend-${CIRCLE_WORKFLOW_ID:0:7} \
             --query "Stacks[0].Outputs[0].OutputValue" \
             --output=text)
-            curl -H "Content-Type: text/plain" -H "token: ${MEMSTASH_TOKEN}" --request PUT --data "${BACKEND_IP}" https://api.memstash.io/values/backend_${TMP_WORKFLOW_ID}
-#            curl -H "Content-Type: text/plain" -H "token: ${MEMSTASH_TOKEN}" --request PUT --data "${BACKEND_IP}" https://api.memstash.io/values/backend_${CIRCLE_WORKFLOW_ID}
-      
+            #curl -H "Content-Type: text/plain" -H "token: ${MEMSTASH_TOKEN}" --request PUT --data "${BACKEND_IP}" https://api.memstash.io/values/backend_${CIRCLE_WORKFLOW_ID}
+            curl -H "Content-Type: text/plain" -H "token: ${MEMSTASH_TOKEN}" --request PUT --data "${BACKEND_IP}" https://api.memstash.io/values/backend_${CIRCLE_WORKFLOW_ID}      
       - run:
           name: Add back-end ip to ansible inventory
           command: |
@@ -246,14 +245,14 @@ jobs:
             --filters "Name=tag:Project,Values=Udapeople" \
             --query 'Reservations[*].Instances[*].PublicIpAddress' \
             --output text >> ansible/inventory.txt      
-#      - run:
-#          name: Ensure front-end infrastructure exist
-#          command: |
-#            aws cloudformation deploy \
-#            --template-file infra/frontend.yml \
-#            --tags Project=Udapeople \
-#            --stack-name udacity-frontend-${CIRCLE_WORKFLOW_ID:0:7}  \
-#            --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:7}  
+      - run:
+          name: Ensure front-end infrastructure exist
+          command: |
+            aws cloudformation deploy \
+            --template-file infra/frontend.yml \
+            --tags Project=Udapeople \
+            --stack-name udacity-frontend-${CIRCLE_WORKFLOW_ID:0:7}  \
+            --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:7}  
       - persist_to_workspace:
           root: .
           paths:
@@ -310,15 +309,13 @@ jobs:
           name: Send migrations result to memstash
           command: |
             cat ./backend/migration.out
-            #            migrationresult=$(grep "has been executed successfully"  ./backend/migration.out | wc -l)
-            #            if [ "$migrationresult" -eq 0 ]  
             if grep "has been executed successfully" ./backend/migration.out 
             then
               echo "A new migration was applied"
-              curl -H "Content-Type: text/plain" -H "token: ${MEMSTASH_TOKEN}" --request PUT --data "y" https://api.memstash.io/values/migration_${TMP_WORKFLOW_ID}
+              curl -H "Content-Type: text/plain" -H "token: ${MEMSTASH_TOKEN}" --request PUT --data "1" https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID}
             else
               echo "Not found any new migration"
-              curl -H "Content-Type: text/plain" -H "token: ${MEMSTASH_TOKEN}" --request PUT --data "n" https://api.memstash.io/values/migration_${TMP_WORKFLOW_ID}
+              curl -H "Content-Type: text/plain" -H "token: ${MEMSTASH_TOKEN}" --request PUT --data "-1" https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID}
             fi
       - destroy-environment:
           workflowID: ${CIRCLE_WORKFLOW_ID:0:7}
@@ -339,7 +336,7 @@ jobs:
       - run:
           name: Get backend url
           command: |
-            BACKEND_IP=$(curl -H "token: ${MEMSTASH_TOKEN}" --request GET https://api.memstash.io/values/backend_${TMP_WORKFLOW_ID})
+            BACKEND_IP=$(curl -H "token: ${MEMSTASH_TOKEN}" --request GET https://api.memstash.io/values/backend_${CIRCLE_WORKFLOW_ID})
             #BACKEND_IP=3.67.185.38
             export API_URL="http://${BACKEND_IP}:3030"
             echo "${API_URL}"
@@ -350,20 +347,26 @@ jobs:
             cd frontend
             npm i 
             npm run build
-            aws s3 sync dist s3://udapeople-${TMP_WORKFLOW_ID:0:7}
-
-      # Here's where you will add some code to rollback on failure      
+            aws s3 sync dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7}
+      - destroy-environment:
+          workflowID: ${CIRCLE_WORKFLOW_ID:0:7}
+          when_to_run: on_fail    
+      - revert-migrations:
+          workflowID: ${CIRCLE_WORKFLOW_ID:0:7}
+          when_to_run: on_fail     
                     
   deploy-backend:
     docker:
       - image: alpine:latest       # Docker image here that supports Ansible
     steps:
       - checkout          # Checkout code from git
+      - restore_cache:
+          keys: [backend-build]
+      - attach_workspace:
+          at: . 
       - add_ssh_keys:             # Add ssh keys with fingerprint
           fingerprints:
             - "16:2a:a4:6f:d5:e5:f3:89:0b:90:ba:0f:58:3d:1f:ca"
-      - attach_workspace:
-          at: . 
       - run:
           name: Install dependencies
           command: |
@@ -383,11 +386,15 @@ jobs:
             cat backend/.env
       - run:
           name: Deploy backend
-            #Use Ansible to copy the files (compiled back-end files can be found in a folder called ./dist).
           command: |
             ansible-playbook ./ansible/deploy-backend.yml -i ./ansible/inventory.txt 
-      # Here's where you will add some code to rollback on failure  
-
+      - destroy-environment:
+          workflowID: ${CIRCLE_WORKFLOW_ID:0:7}
+          when_to_run: on_fail    
+      - revert-migrations:
+          workflowID: ${CIRCLE_WORKFLOW_ID:0:7}
+          when_to_run: on_fail  
+        
   smoke-test:
     docker:
       - image: alpine:latest
