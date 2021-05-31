@@ -94,6 +94,7 @@ commands:
     steps:
       - run:
           name: Revert migrations
+          when: << parameters.when_to_run >>
           command: |
             # Curl command here to see if there was a successful migration associated with the workflow id, store result in SUCCESS variable
             SUCCESS = 1
