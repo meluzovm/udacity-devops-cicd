@@ -17,20 +17,22 @@
     cd /home/ubuntu/git/backend
     npm run build
 
-- name: Prepare environment
+- name: Prepare env file
   shell: |
-    export ENVIRONMENT="{{ lookup('env','ENVIRONMENT') }}"
-    export TYPEORM_CONNECTION="{{ lookup('env','TYPEORM_CONNECTION') }}"
-    export TYPEORM_HOST="{{ lookup('env', 'TYPEORM_HOST') }}"
-    export TYPEORM_PORT="{{ lookup('env','TYPEORM_PORT') }}"
-    export TYPEORM_ENTITIES="{{ lookup('env', 'TYPEORM_ENTITIES') }}"
-    export TYPEORM_USERNAME="{{ lookup('env', 'TYPEORM_USERNAME') }}"
-    export TYPEORM_PASSWORD="{{ lookup('env', 'TYPEORM_PASSWORD') }}"
-    export TYPEORM_DATABASE="{{ lookup('env', 'TYPEORM_DATABASE') }}"
-    env | grep TYPEORM
+    > /home/ubuntu/git/backend/.env
+    echo "ENVIRONMENT={{ lookup('env','ENVIRONMENT') }}" >> /home/ubuntu/git/backend/.env
+    echo "TYPEORM_MIGRATIONS={{ lookup('env', 'TYPEORM_MIGRATIONS') }}" >> /home/ubuntu/git/backend/.env
+    echo "TYPEORM_MIGRATIONS_DIR={{ lookup('env', 'TYPEORM_MIGRATIONS_DIR') }}" >> /home/ubuntu/git/backend/.env
+    echo "TYPEORM_CONNECTION={{ lookup('env','TYPEORM_CONNECTION') }}" >> /home/ubuntu/git/backend/.env
+    echo "TYPEORM_ENTITIES={{ lookup('env','TYPEORM_ENTITIES') }}" >> /home/ubuntu/git/backend/.env
+    echo "TYPEORM_HOST={{ lookup('env', 'TYPEORM_HOST') }}" >> /home/ubuntu/git/backend/.env
+    echo "TYPEORM_PORT={{ lookup('env','TYPEORM_PORT') }}" >> /home/ubuntu/git/backend/.env
+    echo "TYPEORM_USERNAME={{ lookup('env', 'TYPEORM_USERNAME') }}" >> /home/ubuntu/git/backend/.env
+    echo "TYPEORM_PASSWORD={{ lookup('env', 'TYPEORM_PASSWORD') }}" >> /home/ubuntu/git/backend/.env
+    echo "TYPEORM_DATABASE={{ lookup('env', 'TYPEORM_DATABASE') }}" >> /home/ubuntu/git/backend/.env
+    cat /home/ubuntu/git/backend/.env
 
 - name: Run PM2
-  shell:
+  shell: |
     cd /home/ubuntu/git/backend
-    ls -la
     pm2 start npm -- run start
